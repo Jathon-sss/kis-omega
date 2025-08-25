@@ -25,12 +25,4 @@ models/**
 !models/samsung_rf.pkl
 dist/
 build/
-.token.json .env
- *.env
- .token.json
- __pycache__/
- *.log
- data/
- logs/
- models/
- .vscode/ 
+.token.json
