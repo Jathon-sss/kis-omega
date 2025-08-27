@@ -1,0 +1,47 @@
+sources:
+  - name: yonhap_tv
+    bias: neutral
+    type: rss
+    urls:
+      - "http://www.yonhapnewstv.co.kr/browse/feed/"
+      - "http://www.yonhapnewstv.co.kr/category/news/economy/feed/"
+
+  - name: hankyung
+    bias: positive
+    type: rss
+    urls:
+      - "https://www.hankyung.com/feed/all-news"
+      - "https://www.hankyung.com/feed/finance"
+
+  - name: khan
+    bias: negative
+    type: rss
+    urls:
+      - "https://www.khan.co.kr/rss/rssdata/kh_news.xml"
+
+  - name: news1
+    bias: neutral
+    type: google_news
+    query: "site:news1.kr"
+
+  - name: guardian
+    bias: negative
+    type: rss
+    urls:
+      - "https://www.theguardian.com/world/rss"
+      - "https://www.theguardian.com/business/rss"
+
+  - name: reuters
+    bias: neutral
+    type: google_news
+    query: "site:reuters.com"
+
+  - name: ap
+    bias: neutral
+    type: google_news
+    query: "site:apnews.com"
+
+  - name: cnbc
+    bias: positive
+    type: google_news
+    query: "site:cnbc.com"

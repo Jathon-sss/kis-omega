@@ -1,0 +1,26 @@
+defaults:
+  weights: {neutral: 0.30, positive: 0.20, negative: 0.20}
+  dedup_horizon_days: 7
+  min_body_chars: 300
+
+topics:
+  - id: "semiconductor"
+    name: "반도체"
+    tickers: ["005930","000660","TSM","NVDA"]
+    keywords_ko: ["반도체","삼성전자","메모리","파운드리","HBM","TSMC","엔비디아"]
+    keywords_en: ["semiconductor","memory","foundry","HBM","TSMC","NVIDIA","wafer"]
+    sources: ["yonhap_tv","news1","hankyung","khan","reuters","ap","cnbc","guardian"]
+
+  - id: "battery"
+    name: "2차전지"
+    tickers: ["373220","005380","TSLA"]
+    keywords_ko: ["배터리","양극재","음극재","전고체","리튬","니켈","코발트","CATL","테슬라"]
+    keywords_en: ["battery","cathode","anode","solid-state","lithium","nickel","cobalt","EV","Tesla"]
+    sources: ["yonhap_tv","news1","hankyung","khan","reuters","ap","cnbc","guardian"]
+
+  - id: "samsung"
+    name: "삼성전자"
+    tickers: ["005930"]
+    keywords_ko: ["삼성전자","DS부문","파운드리","메모리","선단공정","투자","가이던스"]
+    keywords_en: ["Samsung Electronics","foundry","memory","capex","guidance"]
+    sources: ["yonhap_tv","news1","hankyung","khan","reuters","ap","cnbc","guardian"]
