@@ -1,28 +1,52 @@
+# OS / Editor
 Thumbs.db
 .DS_Store
 .vscode/
 .idea/
+
+# Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.egg-info/
+.ipynb_checkpoints/
+
+# Virtualenv
 .venv/
 venv/
 env/
-*.egg-info/
-.ipynb_checkpoints/
+
+# Secrets
 .env
 .env.*
 *.key
 *.pem
+.token.json
+
+# Logs
 logs/
 *.log
+
+# Data (뉴스 파이프라인 산출물)
+# 전체 data/ 디렉토리 무시
 data/**
 !data/.gitkeep
 !data/samsung_features.csv
+
+# src/data/ 하위도 무시
+src/data/**
+!src/data/.gitkeep
+
+# 단, 결과 요약/특정 모델 산출물만 추적
+!src/data/news_summary.csv
+!src/data/news_summary_history.csv
+
+# Models
 models/**
 !models/.gitkeep
 !models/samsung_rf.pkl
+
+# Build
 dist/
 build/
-.token.json
