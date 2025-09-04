@@ -76,7 +76,9 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
             log(f"지정한 토픽(id={topic_filter})을 찾을 수 없습니다. 종료.")
             return
 
-    W_bias = cfg.get("defaults", {}).get("weights", {"neutral": 0.30, "positive": 0.20, "negative": 0.20})
+    W_bias = cfg.get("defaults", {}).get("weights_by_bias")
+    if not W_bias:
+        W_bias = cfg.get("defaults", {}).get("weights", {"neutral": 0.30, "positive": 0.20, "negative": 0.20})
 
     # 분류기
     clf = build_classifier(device=device)
