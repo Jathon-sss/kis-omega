@@ -1,7 +1,7 @@
-# src/kis_omega/news/enrich_topics.py
 from __future__ import annotations
 
 import time
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -9,10 +9,17 @@ import pandas as pd
 import yaml
 from transformers import pipeline
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 RAW  = ROOT / "data" / "news_raw" / "latest.parquet"
 OUTD = ROOT / "data" / "news"
 
+DEFAULTS_FILE = ROOT / "data" / "topics.yaml"
+TOPICS_DIR    = ROOT / "data" / "topics"
+
+
+# -------------------------
+# Utility
+# -------------------------
 def build_classifier(device: int = -1):
     return pipeline(
         "sentiment-analysis",
@@ -30,7 +37,8 @@ def text_match_any(text: str, keywords: list[str]) -> bool:
     t = (text or "").lower()
     return any(k.lower() in t for k in keywords)
 
-def log(msg: str): print(msg, flush=True)
+def log(msg: str): 
+    print(msg, flush=True)
 
 def fmt_eta(elapsed: float, done: int, total: int) -> str:
     if done == 0: return "ETA ?"
@@ -39,7 +47,50 @@ def fmt_eta(elapsed: float, done: int, total: int) -> str:
     m, s = divmod(int(remain), 60)
     return f"ETA {m}m {s}s"
 
-def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = -1):
+
+# -------------------------
+# Config Loader
+# -------------------------
+def load_defaults() -> dict:
+    if not DEFAULTS_FILE.exists():
+        log(f"[warn] defaults 파일이 없습니다: {DEFAULTS_FILE}")
+        return {}
+    with open(DEFAULTS_FILE, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+    return cfg.get("defaults", {})
+
+def load_topics(files: list[str]) -> list[dict]:
+    all_topics = []
+    for file in files:
+        path = Path(file)
+        if not path.exists():
+            path = TOPICS_DIR / file
+        if not path.exists():
+            log(f"[warn] 토픽 파일 없음 → skip: {file}")
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        topics = data.get("topics", [])
+        all_topics.extend(topics)
+        log(f"Loaded {len(topics)} topics from {path}")
+    # 중복 제거 (id 기준)
+    seen, unique = set(), []
+    for t in all_topics:
+        tid = t.get("id")
+        if tid and tid not in seen:
+            seen.add(tid)
+            unique.append(t)
+    return unique
+
+
+# -------------------------
+# Main Runner
+# -------------------------
+def run(topic_filter: Optional[str] = None,
+        batch_size: int = 16,
+        device: int = -1,
+        topic_files: Optional[list[str]] = None):
+
     if not RAW.exists():
         raise FileNotFoundError(f"뉴스 원본 파일이 없습니다: {RAW}")
 
@@ -49,36 +100,37 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
         log("뉴스가 비어 있습니다. 종료합니다.")
         return
 
-    # KST 날짜키 (히스토리 누적용)
-    # ts_kst가 존재하면 그 날짜로, 없으면 현재 KST로
+    # 날짜키 (히스토리 누적용)
     if "ts_kst" in df.columns and len(df["ts_kst"].dropna()) > 0:
         date_kst = pd.to_datetime(df["ts_kst"]).dt.tz_convert("Asia/Seoul").dt.strftime("%Y%m%d").iloc[0]
     else:
         date_kst = pd.Timestamp.now(tz="Asia/Seoul").strftime("%Y%m%d")
 
-    # 기본값 (fetch에서 없을 수도 있음)
+    # 기본값 채워넣기
     if "coverage_weight" not in df.columns: df["coverage_weight"] = 0.6
     if "is_fulltext" not in df.columns: df["is_fulltext"] = 0
     if "region" not in df.columns:
         df["region"] = df["url"].apply(lambda u: "domestic" if ".kr" in (u or "") else "global")
 
     # 설정 로드
-    cfg_path = ROOT / "kis_omega/news/topics.yaml"     # ← 주의: ROOT는 src 기준
-    if not cfg_path.exists():
-        raise FileNotFoundError(f"설정 파일이 없습니다: {cfg_path}")
-    with open(cfg_path, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+    defaults = load_defaults()
+    topic_files = topic_files or ["topics_stocks.yaml"]
+    topics = load_topics(topic_files)
 
-    topics = cfg["topics"]
     if topic_filter:
-        topics = [t for t in topics if t["id"] == topic_filter]
+        topics = [t for t in topics if t.get("id") == topic_filter]
         if not topics:
             log(f"지정한 토픽(id={topic_filter})을 찾을 수 없습니다. 종료.")
             return
 
-    W_bias = cfg.get("defaults", {}).get("weights_by_bias")
+    # 가중치 설정
+    W_bias = defaults.get("weights_by_bias")
     if not W_bias:
-        W_bias = cfg.get("defaults", {}).get("weights", {"neutral": 0.30, "positive": 0.20, "negative": 0.20})
+        W_bias = defaults.get("weights", {"neutral":0.30,"positive":0.20,"negative":0.20})
+
+    # 🔹 공통 소스 기본값 추가
+    default_sources = defaults.get("sources_default", [])
+
 
     # 분류기
     clf = build_classifier(device=device)
@@ -90,7 +142,8 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
         t0 = time.time()
         tid = tp["id"]
         kws = list(tp.get("keywords_ko", [])) + list(tp.get("keywords_en", []))
-        use_sources = set(tp.get("sources", []))
+        use_sources = set(tp.get("sources", default_sources))
+
 
         # 소스 필터
         sub = df[df["source"].isin(use_sources)].copy()
@@ -109,7 +162,7 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
 
         log(f"[{tid}] 대상 기사: {len(sub)}건 감정분석 시작")
 
-        # 감정분석 (배치 + 진행 로그 + ETA)
+        # 감정분석 (배치 + ETA)
         texts = (sub["title"].fillna("") + " " +
                  sub["summary"].fillna("") + " " +
                  sub["body_text"].fillna("")).str[:512].tolist()
@@ -139,7 +192,7 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
         sub["w_cov"]  = sub["coverage_weight"].fillna(0.6)
         sub["w"]      = sub["w_bias"] * sub["w_cov"]
 
-        # 집계(경고 없는 버전)
+        # 집계
         def wavg_df(g: pd.DataFrame) -> float:
             ww = g["w"].sum()
             return float((g["sentiment"] * g["w"]).sum() / ww) if ww > 0 else float("nan")
@@ -164,7 +217,7 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
         })
         idx_df.to_parquet(out_dir / "latest_index.parquet", index=False)
 
-        # 히스토리 누적 (중복 제거: date_kst)
+        # 히스토리 누적
         hist_path = out_dir / "index_history.parquet"
         if hist_path.exists():
             hist = pd.read_parquet(hist_path)
@@ -175,13 +228,13 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
             merged = idx_df
         merged.to_parquet(hist_path, index=False)
 
-        # summary 모음 (전체 토픽용)
+        # summary 모음
         latest_indices.append(idx_df)
 
         elapsed_total = time.time() - t0
         log(f"[{tid}] 완료 · rows={len(sub)} · idx_overall={overall:.3f} · time={elapsed_total:.1f}s")
 
-    # ---- 모든 토픽 요약 파일 저장 ----
+    # ---- 모든 토픽 요약 저장 ----
     if latest_indices:
         summary = pd.concat(latest_indices, ignore_index=True)
 
@@ -189,7 +242,7 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
         OUT_SUMMARY = ROOT / "data" / "news_summary.csv"
         summary.to_csv(OUT_SUMMARY, index=False, encoding="utf-8-sig")
 
-        # 일자별 요약 히스토리 누적 (중복 제거: topic+date_kst)
+        # 히스토리 누적
         OUT_SUMMARY_HIST = ROOT / "data" / "news_summary_history.csv"
         if OUT_SUMMARY_HIST.exists():
             old = pd.read_csv(OUT_SUMMARY_HIST, dtype={"date_kst":str})
@@ -203,12 +256,20 @@ def run(topic_filter: Optional[str] = None, batch_size: int = 16, device: int = 
         log(f"요약 저장 완료 → {OUT_SUMMARY}")
         log(f"요약 히스토리 갱신 → {OUT_SUMMARY_HIST}")
 
+
+# -------------------------
 # CLI
+# -------------------------
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser(description="뉴스 감정/지수 산출 (토픽별)")
-    ap.add_argument("--topic", default=None, help="특정 토픽 id만 처리 (topics.yaml)")
+    ap.add_argument("--topic", default=None, help="특정 토픽 id만 처리")
     ap.add_argument("--batch-size", type=int, default=16, help="감정분석 배치 크기")
     ap.add_argument("--device", type=int, default=-1, help="-1=CPU, 0=GPU")
+    ap.add_argument("--files", nargs="*", help="topics/*.yaml 파일 리스트 (예: topics_stocks.yaml topics_macro.yaml)")
     args = ap.parse_args()
-    run(topic_filter=args.topic, batch_size=args.batch_size, device=args.device)
+
+    run(topic_filter=args.topic,
+        batch_size=args.batch_size,
+        device=args.device,
+        topic_files=args.files)

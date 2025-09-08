@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import bs4, feedparser, pandas as pd, requests, yaml
 
 KST = dt.timezone(dt.timedelta(hours=9))
-ROOT = Path(__file__).resolve().parents[2]   # e.g. C:\dev\kis-omega\src
+ROOT = Path(__file__).resolve().parents[3]   # e.g. C:\dev\kis-omega\src
 DATA_DIR = ROOT / "data" / "news_raw"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
