@@ -1,0 +1,93 @@
+defaults:
+  # 기존 단순 맵(호환용)
+  weights: {neutral: 0.30, positive: 0.20, negative: 0.20}
+
+  # 정밀 가중치 (권장): bias 라벨별
+  weights_by_bias:
+    center: 0.32
+    market: 0.30
+    center_left: 0.26
+    center_right: 0.26
+
+  dedup_horizon_days: 7
+  min_body_chars: 300
+
+  # 기본 수집 소스(토픽 yaml에서 sources 생략 시 이 목록 사용)
+  sources_default:
+    - yonhap_tv
+    - hankyung
+    - khan
+    - news1
+    - reuters
+    - ap
+    - cnbc
+    - bloomberg
+    - wsj
+    - nytimes
+    - guardian
+    - ft
+    - nikkei
+    - mk
+    - sedaily
+    - edaily
+    - etnews
+    - zdnetkr
+    - fnnews
+    - marketwatch
+    - barrons
+    - yahoofin
+    - seekingalpha
+    - forbes
+    - nhkworld
+    - asahi
+    - investing
+    - techcrunch
+    - theverge
+    - coindesk
+    - cointelegraph
+
+  # 소스별 가중치 (품질/신뢰/시장연관도 반영)
+  # 1.0 가까울수록 신뢰/품질/시장연관도가 높다고 가정
+  sources_weight:
+    # 와이어/톱티어 금융
+    reuters: 1.00
+    bloomberg: 1.00
+    ft: 0.95
+    wsj: 0.95
+    nytimes: 0.90
+    ap: 0.90
+    nikkei: 0.90
+
+    # 미국 금융/비즈
+    marketwatch: 0.85
+    barrons: 0.85
+    yahoofin: 0.80
+    seekingalpha: 0.70      # 뷰/오피니언 성격 섞임
+    forbes: 0.75
+
+    # 국내 경제/비즈/IT
+    yonhap_tv: 0.80
+    hankyung: 0.80
+    news1: 0.75
+    khan: 0.70
+    mk: 0.80
+    sedaily: 0.80
+    edaily: 0.80
+    etnews: 0.80
+    zdnetkr: 0.70
+    fnnews: 0.75
+
+    # 글로벌 일반/테크/암호화폐
+    guardian: 0.70
+    nhkworld: 0.80
+    asahi: 0.75
+    investing: 0.75
+    techcrunch: 0.70
+    theverge: 0.65
+    coindesk: 0.70
+    cointelegraph: 0.65
+
+  # 리전 가중치 (국내/글로벌 비중 차등)
+  region_weight:
+    domestic: 0.90
+    global: 1.00

@@ -33,14 +33,18 @@ logs/
 data/**
 !data/.gitkeep
 !data/samsung_features.csv
+data/news_raw/**
+!data/sources.yaml
+!data/topics.yaml
+!data/topics/**
 
 # src/data/ 하위도 무시
 src/data/**
 !src/data/.gitkeep
 
 # 단, 결과 요약/특정 모델 산출물만 추적
-!src/data/news_summary.csv
-!src/data/news_summary_history.csv
+!data/news_summary.csv
+!data/news_summary_history.csv
 
 # Models
 models/**

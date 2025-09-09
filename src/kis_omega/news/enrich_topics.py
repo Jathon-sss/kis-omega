@@ -20,6 +20,15 @@ TOPICS_DIR    = ROOT / "data" / "topics"
 # -------------------------
 # Utility
 # -------------------------
+def _remap_label(label: str) -> float:
+    s = (label or "")[:1]
+    if s in ("1", "2"): return -1.0   # 확실한 부정
+    if s in ("4", "5"): return +1.0   # 확실한 긍정
+    return 0.0                        # 중립(3)
+
+def _deadzone(x: float, dz: float = 0.15) -> float:
+    return 0.0 if abs(x) < dz else x
+
 def build_classifier(device: int = -1):
     return pipeline(
         "sentiment-analysis",
@@ -130,7 +139,8 @@ def run(topic_filter: Optional[str] = None,
 
     # 🔹 공통 소스 기본값 추가
     default_sources = defaults.get("sources_default", [])
-
+    S_weight = defaults.get("sources_weight", {})  # 소스 가중치
+    R_weight = defaults.get("region_weight", {"domestic": 0.9, "global": 1.0})
 
     # 분류기
     clf = build_classifier(device=device)
@@ -162,10 +172,8 @@ def run(topic_filter: Optional[str] = None,
 
         log(f"[{tid}] 대상 기사: {len(sub)}건 감정분석 시작")
 
-        # 감정분석 (배치 + ETA)
-        texts = (sub["title"].fillna("") + " " +
-                 sub["summary"].fillna("") + " " +
-                 sub["body_text"].fillna("")).str[:512].tolist()
+        # ★ 감정분석 결과 → 라벨기반 재매핑 × 확신도 × 데드존
+        texts = (sub["title"].fillna("") + " " + sub["summary"].fillna("") + " " + sub["body_text"].fillna("")).str[:512].tolist()
 
         total = len(texts)
         sents = []
@@ -183,14 +191,16 @@ def run(topic_filter: Optional[str] = None,
 
         # 점수 변환
         sub = sub.reset_index(drop=True)
-        sub["sentiment"] = [
-            label_to_score(x.get("label",""), float(x.get("score",0.0))) for x in sents
-        ]
+        labels = [x.get("label", "") for x in sents]
+        confs  = [float(x.get("score", 0.0)) for x in sents]
+        sub["sentiment"] = pd.Series([_deadzone(_remap_label(l) * c, 0.15) for l, c in zip(labels, confs)], index=sub.index)
 
-        # 가중치: 편향 × 커버리지
+        # ★ 가중치: 소스 × 리전 × 편향 × 커버리지(클립)
+        sub["w_src"]  = sub["source"].map(S_weight).fillna(0.75)
+        sub["w_reg"]  = sub["region"].map(R_weight).fillna(1.0)
         sub["w_bias"] = sub["bias_tag"].map(W_bias).fillna(0.25)
-        sub["w_cov"]  = sub["coverage_weight"].fillna(0.6)
-        sub["w"]      = sub["w_bias"] * sub["w_cov"]
+        sub["w_cov"]  = sub["coverage_weight"].clip(0.30, 0.90)  # 과도한 영향 방지
+        sub["w"]      = sub["w_src"] * sub["w_reg"] * sub["w_bias"] * sub["w_cov"]
 
         # 집계
         def wavg_df(g: pd.DataFrame) -> float:
@@ -213,7 +223,9 @@ def run(topic_filter: Optional[str] = None,
             "date_kst":[date_kst],
             "idx_domestic":[by_region.get("domestic", float("nan"))],
             "idx_global":[by_region.get("global", float("nan"))],
-            "idx_overall":[overall]
+            "idx_overall":[overall],
+            "article_count": [int(len(sub))],
+            "mean_conf": [float(pd.Series(confs).mean()) if len(confs) else float("nan")],
         })
         idx_df.to_parquet(out_dir / "latest_index.parquet", index=False)
 

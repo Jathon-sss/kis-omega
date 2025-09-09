@@ -6,10 +6,21 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import bs4, feedparser, pandas as pd, requests, yaml
 
+# KST = dt.timezone(dt.timedelta(hours=9))
+# ROOT = Path(__file__).resolve().parents[3]   # e.g. C:\dev\kis-omega\src
+# DATA_DIR = ROOT / "data" / "news_raw"
+# DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 KST = dt.timezone(dt.timedelta(hours=9))
-ROOT = Path(__file__).resolve().parents[3]   # e.g. C:\dev\kis-omega\src
+
+# ★ 프로젝트 루트(레포 루트) 기준이 되도록 parents[3]
+ROOT = Path(__file__).resolve().parents[3]   # e.g. C:\dev\kis-omega
 DATA_DIR = ROOT / "data" / "news_raw"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# ★ sources.yaml: 새 위치 + 레거시(기존 위치) 폴백
+CONF_SOURCES = ROOT / "data" / "sources.yaml"
+CONF_SOURCES_OLD = Path(__file__).resolve().parent / "sources.yaml"  # src/kis_omega/news/sources.yaml
 
 def now_utc(): return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc)
 def to_kst(t): return t.astimezone(KST)
@@ -46,10 +57,49 @@ def extract_fulltext(url: str, timeout=6):
     except Exception:
         return ""
 
+# --- add (상단 import 아래 아무 곳에 추가) ---
+def load_sources():
+    """
+    sources.yaml을 'data/'에서 우선 로드, 없으면 src/kis_omega/news/에서 레거시 폴백.
+    반환: list[dict] (각 항목: id, name, kind, url, region, bias_tag)
+    """
+    path = None
+    if CONF_SOURCES.exists():
+        path = CONF_SOURCES
+    elif CONF_SOURCES_OLD.exists():
+        path = CONF_SOURCES_OLD
+        print(f"[warn] using legacy sources file: {path}", flush=True)
+    else:
+        raise FileNotFoundError(
+            f"뉴스 소스 파일 없음: {CONF_SOURCES} (또는 legacy {CONF_SOURCES_OLD})"
+        )
+
+    with open(path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+    srcs = cfg.get("sources", [])
+    print(f"[ok] loaded {len(srcs)} sources from {path}", flush=True)
+    return srcs
+
+def iter_feeds():
+    """
+    fetch 루프에서 사용할 제너레이터.
+    kind=="rss"만 필터링(필요시 atom/api 분기 추가).
+    """
+    for s in load_sources():
+        kind = s.get("kind", "rss")
+        if kind != "rss":
+            continue
+        yield {
+            "id": s["id"],
+            "name": s.get("name", s["id"]),
+            "url": s["url"],
+            "region": s.get("region", "global"),
+            "bias_tag": s.get("bias_tag", "center"),
+        }
+
 def run(no_body: bool=False, max_per_source: int=9999, timeout: int=6, workers: int=0):
     # 소스 로드 (주의: ROOT는 src 기준이므로 "kis_omega/..."로 접근)
-    with open(ROOT / "kis_omega/news/sources.yaml","r",encoding="utf-8") as f:
-        sources = yaml.safe_load(f)["sources"]
+    sources = load_sources()
 
     print(f"[1/3] RSS/검색 수집 시작 (sources={len(sources)}, limit={max_per_source})")
     rows = []

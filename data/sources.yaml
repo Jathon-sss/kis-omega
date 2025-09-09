@@ -1,0 +1,183 @@
+sources:
+  # ───── 국내 기존 (4) ─────
+  - name: yonhap_tv
+    bias: center
+    type: rss
+    urls:
+      - "http://www.yonhapnewstv.co.kr/browse/feed/"
+      - "http://www.yonhapnewstv.co.kr/category/news/economy/feed/"
+
+  - name: hankyung
+    bias: market
+    type: rss
+    urls:
+      - "https://www.hankyung.com/feed/all-news"
+      - "https://www.hankyung.com/feed/finance"
+
+  - name: khan
+    bias: center_left
+    type: rss
+    urls:
+      - "https://www.khan.co.kr/rss/rssdata/kh_news.xml"
+
+  - name: news1
+    bias: center
+    type: google_news
+    query: "site:news1.kr"
+
+  # ───── 국내 추가 (6) ─────
+  - name: mk
+    bias: market
+    type: rss
+    urls:
+      - "https://www.mk.co.kr/rss/40300001/"
+
+  - name: sedaily
+    bias: market
+    type: rss
+    urls:
+      - "https://www.sedaily.com/rss/NewsFocus.xml"
+
+  - name: edaily
+    bias: market
+    type: rss
+    urls:
+      - "https://www.edaily.co.kr/rss/RSS_All.xml"
+
+  - name: etnews
+    bias: center
+    type: rss
+    urls:
+      - "https://rss.etnews.com/Section902.xml"
+
+  - name: zdnetkr
+    bias: center
+    type: rss
+    urls:
+      - "https://www.zdnet.co.kr/news/news.xml"
+
+  - name: fnnews
+    bias: market
+    type: rss
+    urls:
+      - "https://www.fnnews.com/rss/headline.xml"
+
+  # ───── 미국 기존 (6) ─────
+  - name: reuters
+    bias: center
+    type: google_news
+    query: "site:reuters.com"
+
+  - name: ap
+    bias: center
+    type: google_news
+    query: "site:apnews.com"
+
+  - name: cnbc
+    bias: market
+    type: google_news
+    query: "site:cnbc.com"
+
+  - name: bloomberg
+    bias: market
+    type: google_news
+    query: "site:bloomberg.com"
+
+  - name: wsj
+    bias: center_right
+    type: google_news
+    query: "site:wsj.com"
+
+  - name: nytimes
+    bias: center_left
+    type: google_news
+    query: "site:nytimes.com"
+
+  # ───── 미국 추가 (5) ─────
+  - name: marketwatch
+    bias: market
+    type: rss
+    urls:
+      - "https://www.marketwatch.com/feeds/topstories"
+
+  - name: barrons
+    bias: market
+    type: rss
+    urls:
+      - "https://www.barrons.com/feeds/homepage"
+
+  - name: yahoofin
+    bias: market
+    type: google_news
+    query: "site:finance.yahoo.com"
+
+  - name: seekingalpha
+    bias: center
+    type: google_news
+    query: "site:seekingalpha.com"
+
+  - name: forbes
+    bias: center_right
+    type: google_news
+    query: "site:forbes.com"
+
+  # ───── 글로벌/영국/일본 기존 (3) ─────
+  - name: guardian
+    bias: center_left
+    type: rss
+    urls:
+      - "https://www.theguardian.com/world/rss"
+      - "https://www.theguardian.com/business/rss"
+
+  - name: ft
+    bias: market
+    type: google_news
+    query: "site:ft.com"
+
+  - name: nikkei
+    bias: market
+    type: google_news
+    query: "site:asia.nikkei.com"
+
+  # ───── 글로벌 추가 (6) ─────
+  - name: nhkworld
+    bias: center
+    type: rss
+    urls:
+      - "https://www3.nhk.or.jp/nhkworld/en/news/rss/"
+
+  - name: asahi
+    bias: center_left
+    type: rss
+    urls:
+      - "https://www.asahi.com/ajw/rss/"
+
+  - name: investing
+    bias: market
+    type: rss
+    urls:
+      - "https://www.investing.com/rss/news_25.rss"
+
+  - name: techcrunch
+    bias: center
+    type: rss
+    urls:
+      - "https://techcrunch.com/feed/"
+
+  - name: theverge
+    bias: center_left
+    type: rss
+    urls:
+      - "https://www.theverge.com/rss/index.xml"
+
+  - name: coindesk
+    bias: center
+    type: rss
+    urls:
+      - "https://www.coindesk.com/arc/outboundfeeds/rss/"
+
+  - name: cointelegraph
+    bias: center
+    type: rss
+    urls:
+      - "https://cointelegraph.com/rss"
