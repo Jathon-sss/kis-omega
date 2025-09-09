@@ -1,0 +1,4 @@
+기사 긁어 오기
+1️⃣ python -m kis_omega.news.fetch
+기사 판단하기
+2️⃣ python -m kis_omega.news.enrich_topics
